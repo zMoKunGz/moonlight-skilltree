@@ -26,32 +26,56 @@ function init() {
   document.getElementById('btn-import-home').addEventListener('click', importJSON);
 }
 
-function showLoadScreen() {
+async function showLoadScreen() {
   simLayout.style.display = 'none';
   loadScreen.style.display = 'flex';
   const list = document.getElementById('tree-list');
   list.innerHTML = '';
-  const names = TreeModel.listLocal();
-  if (names.length === 0) {
-    list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree<br>ไปสร้างใน Editor ก่อนนะ</p>';
-    return;
+  list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">กำลังโหลด...</div>';
+  try {
+    const trees = await TreeModel.listRemote();
+    list.innerHTML = '';
+    if (trees.length === 0) {
+      list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree<br>ไปสร้างใน Editor ก่อนนะ</p>';
+      return;
+    }
+    trees.sort((a,b) => b.modified - a.modified);
+    trees.forEach(item => {
+      const d = new Date(item.modified);
+      const el = document.createElement('div');
+      el.className = 'tree-item';
+      el.innerHTML = `
+        <div>
+          <div class="ti-name">${item.name}</div>
+          <div class="ti-meta">${item.nodeCount} nodes · ${d.toLocaleDateString('th-TH')}</div>
+        </div>
+        <span style="color:var(--text3);font-size:18px">›</span>
+      `;
+      el.addEventListener('click', async () => {
+        const t = await TreeModel.loadRemote(item.key);
+        if (t) loadTree(t);
+      });
+      list.appendChild(el);
+    });
+  } catch(e) {
+    // fallback localStorage
+    const names = TreeModel.listLocal();
+    list.innerHTML = '';
+    if (names.length === 0) {
+      list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree</p>';
+      return;
+    }
+    names.forEach(name => {
+      const t = TreeModel.loadLocal(name);
+      if (!t) return;
+      const el = document.createElement('div');
+      el.className = 'tree-item';
+      const d = new Date(t.meta.modified);
+      el.innerHTML = `<div><div class="ti-name">${t.meta.name}</div><div class="ti-meta">${t.nodes.length} nodes · ${d.toLocaleDateString('th-TH')}</div></div><span style="color:var(--text3);font-size:18px">›</span>`;
+      el.addEventListener('click', () => loadTree(t));
+      list.appendChild(el);
+    });
   }
-  names.forEach(name => {
-    const t = TreeModel.loadLocal(name);
-    if (!t) return;
-    const item = document.createElement('div');
-    item.className = 'tree-item';
-    const d = new Date(t.meta.modified);
-    item.innerHTML = `
-      <div>
-        <div class="ti-name">${t.meta.name}</div>
-        <div class="ti-meta">${t.nodes.length} nodes · ${d.toLocaleDateString('th-TH')}</div>
-      </div>
-      <span style="color:var(--text3);font-size:18px">›</span>
-    `;
-    item.addEventListener('click', () => loadTree(t));
-    list.appendChild(item);
-  });
 }
 
 function loadTree(t) {

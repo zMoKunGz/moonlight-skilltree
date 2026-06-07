@@ -66,9 +66,28 @@ const treeName   = document.getElementById('tree-name-input');
 const saveStatus = document.getElementById('save-status');
 
 // ── Init ──
-function init() {
+async function init() {
+  // โหลด tree ล่าสุดจาก Firebase
   const last = localStorage.getItem('skilltree_last');
-  if (last) {
+  if (last && window.FirebaseDB) {
+    try {
+      const t = await window.FirebaseDB.loadTree(last.replace(/[.#$[\]/]/g,'_'));
+      if (t) {
+        tree = t;
+        // watch real-time changes จากคนอื่น
+        window.FirebaseDB.watchTree(last.replace(/[.#$[\]/]/g,'_'), remoteTree => {
+          if (!isDirty) {
+            tree = remoteTree;
+            treeName.value = tree.meta.name;
+            renderAll();
+          }
+        });
+      }
+    } catch(e) {
+      const t = TreeModel.loadLocal(last);
+      if (t) tree = t;
+    }
+  } else if (last) {
     const t = TreeModel.loadLocal(last);
     if (t) tree = t;
   }
@@ -444,10 +463,16 @@ async function doAutoSave() {
   });
 }
 
-function _save() {
+async function _save() {
   tree.meta.name = treeName.value || 'Untitled Tree';
-  TreeModel.saveLocal(tree);
-  localStorage.setItem('skilltree_last', tree.meta.name);
+  try {
+    await TreeModel.saveRemote(tree);
+    localStorage.setItem('skilltree_last', tree.meta.name);
+  } catch(e) {
+    // fallback localStorage
+    TreeModel.saveLocal(tree);
+    console.warn('Firebase save failed, using localStorage', e);
+  }
   isDirty = false;
   setSaveStatus('saved');
   clearTimeout(autoSaveTimer);
