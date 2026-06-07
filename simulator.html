@@ -14,7 +14,7 @@
   <div class="sep"></div>
   <span id="sim-tree-name" class="tree-name">—</span>
   <div class="spacer"></div>
-  <button class="btn sm" id="btn-token-sim" title="ตั้งค่า GitHub Token">🔑 Token</button>
+  <button class="btn sm" id="btn-token-sim">🔑 Token</button>
   <button class="btn sm" id="btn-load">📂 โหลด Tree</button>
   <button class="btn sm" id="btn-import">📄 Import JSON</button>
   <button class="btn sm" id="btn-reset-view">⊙ Reset view</button>
@@ -67,11 +67,6 @@
   </div>
 </div>
 
-<script>
-  // รอ Firebase module โหลดเสร็จก่อน
-  window._firebaseReady = new Promise(r => window._firebaseResolve = r);
-</script>
-<script type="module" src="js/firebase.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/tree.js"></script>
 <script src="js/github.js"></script>

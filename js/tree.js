@@ -120,28 +120,3 @@ const TreeModel = {
 };
 
 window.TreeModel = TreeModel;
-
-// ── Firebase-aware save/load (override localStorage) ──
-TreeModel.saveRemote = async function(tree) {
-  if (window.FirebaseDB) {
-    return await window.FirebaseDB.saveTree(tree);
-  }
-  return TreeModel.saveLocal(tree);
-};
-
-TreeModel.loadRemote = async function(key) {
-  if (window.FirebaseDB) {
-    return await window.FirebaseDB.loadTree(key);
-  }
-  return TreeModel.loadLocal(key);
-};
-
-TreeModel.listRemote = async function() {
-  if (window.FirebaseDB) {
-    return await window.FirebaseDB.listTrees();
-  }
-  // fallback: localStorage
-  return TreeModel.listLocal().map(name => ({
-    key: name, name, nodeCount: 0, modified: 0
-  }));
-};

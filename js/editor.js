@@ -66,27 +66,9 @@ const treeName   = document.getElementById('tree-name-input');
 const saveStatus = document.getElementById('save-status');
 
 // ── Init ──
-async function init() {
+function init() {
   const last = localStorage.getItem('skilltree_last');
-  if (last && window.FirebaseDB) {
-    try {
-      const t = await window.FirebaseDB.loadTree(last.replace(/[.#$[\]/]/g,'_'));
-      if (t) {
-        tree = t;
-        // watch real-time changes จากคนอื่น
-        window.FirebaseDB.watchTree(last.replace(/[.#$[\]/]/g,'_'), remoteTree => {
-          if (!isDirty) {
-            tree = remoteTree;
-            treeName.value = tree.meta.name;
-            renderAll();
-          }
-        });
-      }
-    } catch(e) {
-      const t = TreeModel.loadLocal(last);
-      if (t) tree = t;
-    }
-  } else if (last) {
+  if (last) {
     const t = TreeModel.loadLocal(last);
     if (t) tree = t;
   }
@@ -466,12 +448,11 @@ async function _save() {
   tree.meta.name = treeName.value || 'Untitled Tree';
   try {
     await TreeModel.saveRemote(tree);
-    localStorage.setItem('skilltree_last', tree.meta.name);
   } catch(e) {
-    // fallback localStorage
+    console.warn('Remote save failed, fallback localStorage', e);
     TreeModel.saveLocal(tree);
-    console.warn('Firebase save failed, using localStorage', e);
   }
+  localStorage.setItem('skilltree_last', tree.meta.name);
   isDirty = false;
   setSaveStatus('saved');
   clearTimeout(autoSaveTimer);
@@ -561,44 +542,6 @@ async function newTree() {
   renderAll(); setSaveStatus('');
 }
 
-
-function showTokenDialog() {
-  const current = window.GitHubDB?.hasToken() ? '••••••••' : '';
-  SwalDark.fire({
-    title: '🔑 GitHub Token',
-    html: `
-      <div style="text-align:left;font-size:12px;color:var(--text2);margin-bottom:12px">
-        ใช้สำหรับ save/load tree บน GitHub<br>
-        <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank"
-          style="color:var(--accent)">คลิกที่นี่เพื่อสร้าง Token</a>
-        (ติ๊ก <b>repo</b> scope)
-      </div>
-      <input id="swal-token" type="password" class="swal2-input"
-        placeholder="ghp_xxxxxxxxxxxx" value="${current==='••••••••'?'':''}"
-        style="font-family:monospace;font-size:13px">
-      ${window.GitHubDB?.hasToken()
-        ? '<div style="color:var(--green);font-size:12px;margin-top:8px">✓ Token ตั้งค่าแล้ว</div>'
-        : '<div style="color:var(--red);font-size:12px;margin-top:8px">⚠ ยังไม่มี Token — save จะใช้ localStorage แทน</div>'}
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'บันทึก Token',
-    cancelButtonText: window.GitHubDB?.hasToken() ? 'ลบ Token' : 'ยกเลิก',
-    preConfirm: () => {
-      const val = document.getElementById('swal-token').value.trim();
-      if (!val) { Swal.showValidationMessage('กรุณาใส่ Token'); return false; }
-      return val;
-    }
-  }).then(r => {
-    if (r.isConfirmed && r.value) {
-      window.GitHubDB?.setToken(r.value);
-      SwalDark.fire({icon:'success',title:'บันทึก Token แล้ว!',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
-    } else if (r.isDismissed && r.dismiss === 'cancel' && window.GitHubDB?.hasToken()) {
-      window.GitHubDB?.clearToken();
-      SwalDark.fire({icon:'info',title:'ลบ Token แล้ว',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
-    }
-  });
-}
-
 // ── Ghost ──
 function showGhost(x, y) {
   if (!ghostEl) { ghostEl = document.createElement('div'); ghostEl.className='node-ghost'; canvas.appendChild(ghostEl); }
@@ -653,6 +596,44 @@ function showRandomizeMenu(node) {
     cancelButtonText: 'ยกเลิก',
     didOpen: () => {
       window._doRand = (cat) => { randomizeStat(node, cat); };
+    }
+  });
+}
+
+
+function showTokenDialog() {
+  const hasTok = window.GitHubDB?.hasToken();
+  SwalDark.fire({
+    title: '🔑 GitHub Token',
+    html: `
+      <div style="text-align:left;font-size:12px;color:var(--text2);margin-bottom:10px">
+        ใช้สำหรับ save/load tree บน GitHub Repo<br>
+        <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank"
+          style="color:var(--accent)">คลิกสร้าง Token ใหม่</a>
+        (ติ๊ก <b>repo</b>)
+      </div>
+      <input id="swal-token" type="password" class="swal2-input"
+        placeholder="ghp_xxxxxxxxxxxx"
+        style="font-family:monospace;font-size:13px">
+      <div style="margin-top:8px;font-size:12px;color:${hasTok?'var(--green)':'var(--red)'}">
+        ${hasTok ? '✓ Token ตั้งค่าแล้ว — ใส่ใหม่เพื่อเปลี่ยน' : '⚠ ยังไม่มี Token'}
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก',
+    cancelButtonText: hasTok ? '🗑 ลบ Token' : 'ยกเลิก',
+    preConfirm: () => {
+      const v = document.getElementById('swal-token').value.trim();
+      if (!v) { Swal.showValidationMessage('กรุณาใส่ Token'); return false; }
+      return v;
+    }
+  }).then(r => {
+    if (r.isConfirmed && r.value) {
+      window.GitHubDB?.setToken(r.value);
+      SwalDark.fire({icon:'success',title:'บันทึก Token แล้ว!',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
+    } else if (r.dismiss === Swal.DismissReason.cancel && hasTok) {
+      window.GitHubDB?.clearToken();
+      SwalDark.fire({icon:'info',title:'ลบ Token แล้ว',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
     }
   });
 }

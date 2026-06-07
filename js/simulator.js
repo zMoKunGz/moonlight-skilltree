@@ -21,18 +21,19 @@ const simLayout  = document.getElementById('sim-layout');
 
 // ── Init ──
 function init() {
+  showLoadScreen();
   bindTopbar();
   document.getElementById('btn-import-home').addEventListener('click', importJSON);
-  showLoadScreen();
 }
 
-function showLoadScreen() {
+async function showLoadScreen() {
   simLayout.style.display = 'none';
   loadScreen.style.display = 'flex';
   const list = document.getElementById('tree-list');
-  list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">กำลังโหลด...</div>';
+  list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">กำลังโหลด...</div>';
 
-  function renderList(trees) {
+  try {
+    const trees = await TreeModel.listRemote();
     list.innerHTML = '';
     if (!trees || trees.length === 0) {
       list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree<br>ไปสร้างใน Editor ก่อนนะ</p>';
@@ -52,31 +53,20 @@ function showLoadScreen() {
         <span style="color:var(--text3);font-size:18px">›</span>
       `;
       el.addEventListener('click', async () => {
-        list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">กำลังโหลด tree...</div>';
-        try {
-          const t = await TreeModel.loadRemote(item.key);
-          if (t) loadTree(t);
-          else throw new Error('no data');
-        } catch(err) {
-          console.error(err);
+        list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">กำลังโหลด tree...</div>';
+        const t = await TreeModel.loadRemote(item.key);
+        if (t) loadTree(t);
+        else {
           list.innerHTML = '<p style="color:var(--red);font-size:12px;text-align:center">โหลดไม่ได้ ลองใหม่</p>';
           setTimeout(showLoadScreen, 2000);
         }
       });
       list.appendChild(el);
     });
-  }
-
-  if (window.FirebaseDB) {
-    // real-time list
-    window.FirebaseDB.watchTreeList(renderList);
-  } else {
-    // fallback localStorage
-    const names = TreeModel.listLocal();
-    renderList(names.map(name => {
-      const t = TreeModel.loadLocal(name);
-      return { key: name, name, nodeCount: t?.nodes?.length||0, modified: t?.meta?.modified||0 };
-    }));
+  } catch(e) {
+    console.error(e);
+    list.innerHTML = `<p style="color:var(--red);font-size:12px;text-align:center">Error: ${e.message}<br><br>
+      <button onclick="showLoadScreen()" style="color:var(--accent);background:none;border:none;cursor:pointer">ลองใหม่</button></p>`;
   }
 }
 
@@ -338,12 +328,12 @@ function bindCanvas() {
 // ── Topbar ──
 function bindTopbar() {
   document.getElementById('btn-load').addEventListener('click', showLoadScreen);
-  const btnTokenSim = document.getElementById('btn-token-sim');
-  if (btnTokenSim) btnTokenSim.addEventListener('click', () => {
-    const cur = window.GitHubDB?.hasToken();
-    const token = prompt(cur ? 'Token ตั้งค่าแล้ว\nใส่ใหม่เพื่อเปลี่ยน หรือพิมพ์ DELETE เพื่อลบ:' : 'ใส่ GitHub Personal Access Token:');
-    if (token === 'DELETE') { window.GitHubDB?.clearToken(); alert('ลบ Token แล้ว'); }
-    else if (token) { window.GitHubDB?.setToken(token); showLoadScreen(); }
+  const btnTokSim = document.getElementById('btn-token-sim');
+  if (btnTokSim) btnTokSim.addEventListener('click', () => {
+    const hasTok = window.GitHubDB?.hasToken();
+    const tok = prompt(hasTok ? 'Token ตั้งค่าแล้ว\nใส่ใหม่เพื่อเปลี่ยน หรือพิมพ์ DELETE เพื่อลบ:' : 'ใส่ GitHub Personal Access Token:');
+    if (tok === 'DELETE') { window.GitHubDB?.clearToken(); alert('ลบ Token แล้ว'); }
+    else if (tok?.trim()) { window.GitHubDB?.setToken(tok); showLoadScreen(); }
   });
   document.getElementById('btn-import').addEventListener('click', importJSON);
   document.getElementById('btn-reset-view').addEventListener('click', resetView);
