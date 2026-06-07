@@ -67,7 +67,15 @@ const saveStatus = document.getElementById('save-status');
 
 // ── Init ──
 async function init() {
-  // โหลด tree ล่าสุดจาก Firebase
+  // รอ Firebase โหลดเสร็จก่อน
+  try {
+    await Promise.race([
+      window._firebaseReady || Promise.resolve(),
+      new Promise((_,rej) => setTimeout(() => rej('timeout'), 5000))
+    ]);
+  } catch(e) { console.warn('Firebase timeout'); }
+
+  // โหลด tree ล่าสุด
   const last = localStorage.getItem('skilltree_last');
   if (last && window.FirebaseDB) {
     try {

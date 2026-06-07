@@ -1,7 +1,7 @@
-// firebase.js — Firebase Realtime Database integration
+// firebase.js — โหลดแบบ module แล้ว expose ผ่าน window.FirebaseReady promise
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, push, remove }
+import { getDatabase, ref, set, get, onValue, remove }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -12,71 +12,62 @@ const firebaseConfig = {
   storageBucket: "moonlightmc-db.firebasestorage.app",
   messagingSenderId: "888076397114",
   appId: "1:888076397114:web:a5a3f9c5b74d4349b06303",
-  measurementId: "G-4LE4617PP3"
 };
+
+function sanitizeKey(name) {
+  return (name || 'untitled').replace(/[.#$[\]/\s]/g, '_').slice(0, 64);
+}
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-// ── API ──
-
-// list all trees
-export async function listTrees() {
-  const snap = await get(ref(db, 'trees'));
-  if (!snap.exists()) return [];
-  const data = snap.val();
-  return Object.entries(data).map(([key, val]) => ({
-    key,
-    name: val.meta?.name || key,
-    nodeCount: val.nodes?.length || 0,
-    modified: val.meta?.modified || 0,
-  }));
-}
-
-// load one tree by key
-export async function loadTree(key) {
-  const snap = await get(ref(db, `trees/${key}`));
-  return snap.exists() ? snap.val() : null;
-}
-
-// save tree (key = tree name sanitized)
-export async function saveTree(tree) {
-  const key = sanitizeKey(tree.meta.name);
-  tree.meta.modified = Date.now();
-  await set(ref(db, `trees/${key}`), tree);
-  return key;
-}
-
-// delete tree
-export async function deleteTree(key) {
-  await remove(ref(db, `trees/${key}`));
-}
-
-// listen real-time to a tree
-export function watchTree(key, callback) {
-  const r = ref(db, `trees/${key}`);
-  return onValue(r, snap => {
-    if (snap.exists()) callback(snap.val());
-  });
-}
-
-// listen to tree list changes
-export function watchTreeList(callback) {
-  const r = ref(db, 'trees');
-  return onValue(r, snap => {
-    if (!snap.exists()) { callback([]); return; }
-    const data = snap.val();
-    callback(Object.entries(data).map(([key, val]) => ({
+const FirebaseDB = {
+  async listTrees() {
+    const snap = await get(ref(db, 'trees'));
+    if (!snap.exists()) return [];
+    return Object.entries(snap.val()).map(([key, val]) => ({
       key,
       name: val.meta?.name || key,
-      nodeCount: val.nodes?.length || 0,
+      nodeCount: Array.isArray(val.nodes) ? val.nodes.length : Object.keys(val.nodes||{}).length,
       modified: val.meta?.modified || 0,
-    })));
-  });
-}
+    }));
+  },
 
-function sanitizeKey(name) {
-  return name.replace(/[.#$[\]/]/g, '_').slice(0, 64) || 'untitled';
-}
+  async loadTree(key) {
+    const snap = await get(ref(db, `trees/${sanitizeKey(key)}`));
+    return snap.exists() ? snap.val() : null;
+  },
 
-window.FirebaseDB = { listTrees, loadTree, saveTree, deleteTree, watchTree, watchTreeList };
+  async saveTree(tree) {
+    const key = sanitizeKey(tree.meta.name);
+    tree.meta.modified = Date.now();
+    await set(ref(db, `trees/${key}`), JSON.parse(JSON.stringify(tree)));
+    return key;
+  },
+
+  async deleteTree(key) {
+    await remove(ref(db, `trees/${sanitizeKey(key)}`));
+  },
+
+  watchTree(key, callback) {
+    return onValue(ref(db, `trees/${sanitizeKey(key)}`), snap => {
+      if (snap.exists()) callback(snap.val());
+    });
+  },
+
+  watchTreeList(callback) {
+    return onValue(ref(db, 'trees'), snap => {
+      if (!snap.exists()) { callback([]); return; }
+      callback(Object.entries(snap.val()).map(([key, val]) => ({
+        key,
+        name: val.meta?.name || key,
+        nodeCount: Array.isArray(val.nodes) ? val.nodes.length : Object.keys(val.nodes||{}).length,
+        modified: val.meta?.modified || 0,
+      })));
+    });
+  },
+};
+
+// expose ผ่าน window และ resolve promise
+window.FirebaseDB = FirebaseDB;
+if (window._firebaseResolve) window._firebaseResolve(FirebaseDB);

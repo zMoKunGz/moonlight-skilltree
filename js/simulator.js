@@ -20,22 +20,30 @@ const loadScreen = document.getElementById('load-screen');
 const simLayout  = document.getElementById('sim-layout');
 
 // ── Init ──
-function init() {
-  showLoadScreen();
+async function init() {
+  // รอ Firebase โหลดเสร็จก่อน (timeout 5s แล้ว fallback)
+  try {
+    await Promise.race([
+      window._firebaseReady,
+      new Promise((_,rej) => setTimeout(() => rej('timeout'), 5000))
+    ]);
+  } catch(e) {
+    console.warn('Firebase timeout, using localStorage');
+  }
   bindTopbar();
   document.getElementById('btn-import-home').addEventListener('click', importJSON);
+  showLoadScreen();
 }
 
-async function showLoadScreen() {
+function showLoadScreen() {
   simLayout.style.display = 'none';
   loadScreen.style.display = 'flex';
   const list = document.getElementById('tree-list');
-  list.innerHTML = '';
   list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">กำลังโหลด...</div>';
-  try {
-    const trees = await TreeModel.listRemote();
+
+  function renderList(trees) {
     list.innerHTML = '';
-    if (trees.length === 0) {
+    if (!trees || trees.length === 0) {
       list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree<br>ไปสร้างใน Editor ก่อนนะ</p>';
       return;
     }
@@ -44,6 +52,7 @@ async function showLoadScreen() {
       const d = new Date(item.modified);
       const el = document.createElement('div');
       el.className = 'tree-item';
+      el.style.cursor = 'pointer';
       el.innerHTML = `
         <div>
           <div class="ti-name">${item.name}</div>
@@ -52,29 +61,31 @@ async function showLoadScreen() {
         <span style="color:var(--text3);font-size:18px">›</span>
       `;
       el.addEventListener('click', async () => {
-        const t = await TreeModel.loadRemote(item.key);
-        if (t) loadTree(t);
+        list.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">กำลังโหลด tree...</div>';
+        try {
+          const t = await TreeModel.loadRemote(item.key);
+          if (t) loadTree(t);
+          else throw new Error('no data');
+        } catch(err) {
+          console.error(err);
+          list.innerHTML = '<p style="color:var(--red);font-size:12px;text-align:center">โหลดไม่ได้ ลองใหม่</p>';
+          setTimeout(showLoadScreen, 2000);
+        }
       });
       list.appendChild(el);
     });
-  } catch(e) {
+  }
+
+  if (window.FirebaseDB) {
+    // real-time list
+    window.FirebaseDB.watchTreeList(renderList);
+  } else {
     // fallback localStorage
     const names = TreeModel.listLocal();
-    list.innerHTML = '';
-    if (names.length === 0) {
-      list.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center">ยังไม่มี tree</p>';
-      return;
-    }
-    names.forEach(name => {
+    renderList(names.map(name => {
       const t = TreeModel.loadLocal(name);
-      if (!t) return;
-      const el = document.createElement('div');
-      el.className = 'tree-item';
-      const d = new Date(t.meta.modified);
-      el.innerHTML = `<div><div class="ti-name">${t.meta.name}</div><div class="ti-meta">${t.nodes.length} nodes · ${d.toLocaleDateString('th-TH')}</div></div><span style="color:var(--text3);font-size:18px">›</span>`;
-      el.addEventListener('click', () => loadTree(t));
-      list.appendChild(el);
-    });
+      return { key: name, name, nodeCount: t?.nodes?.length||0, modified: t?.meta?.modified||0 };
+    }));
   }
 }
 
