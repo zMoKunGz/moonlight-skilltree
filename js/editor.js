@@ -67,15 +67,6 @@ const saveStatus = document.getElementById('save-status');
 
 // ── Init ──
 async function init() {
-  // รอ Firebase โหลดเสร็จก่อน
-  try {
-    await Promise.race([
-      window._firebaseReady || Promise.resolve(),
-      new Promise((_,rej) => setTimeout(() => rej('timeout'), 5000))
-    ]);
-  } catch(e) { console.warn('Firebase timeout'); }
-
-  // โหลด tree ล่าสุด
   const last = localStorage.getItem('skilltree_last');
   if (last && window.FirebaseDB) {
     try {
@@ -570,6 +561,44 @@ async function newTree() {
   renderAll(); setSaveStatus('');
 }
 
+
+function showTokenDialog() {
+  const current = window.GitHubDB?.hasToken() ? '••••••••' : '';
+  SwalDark.fire({
+    title: '🔑 GitHub Token',
+    html: `
+      <div style="text-align:left;font-size:12px;color:var(--text2);margin-bottom:12px">
+        ใช้สำหรับ save/load tree บน GitHub<br>
+        <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank"
+          style="color:var(--accent)">คลิกที่นี่เพื่อสร้าง Token</a>
+        (ติ๊ก <b>repo</b> scope)
+      </div>
+      <input id="swal-token" type="password" class="swal2-input"
+        placeholder="ghp_xxxxxxxxxxxx" value="${current==='••••••••'?'':''}"
+        style="font-family:monospace;font-size:13px">
+      ${window.GitHubDB?.hasToken()
+        ? '<div style="color:var(--green);font-size:12px;margin-top:8px">✓ Token ตั้งค่าแล้ว</div>'
+        : '<div style="color:var(--red);font-size:12px;margin-top:8px">⚠ ยังไม่มี Token — save จะใช้ localStorage แทน</div>'}
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก Token',
+    cancelButtonText: window.GitHubDB?.hasToken() ? 'ลบ Token' : 'ยกเลิก',
+    preConfirm: () => {
+      const val = document.getElementById('swal-token').value.trim();
+      if (!val) { Swal.showValidationMessage('กรุณาใส่ Token'); return false; }
+      return val;
+    }
+  }).then(r => {
+    if (r.isConfirmed && r.value) {
+      window.GitHubDB?.setToken(r.value);
+      SwalDark.fire({icon:'success',title:'บันทึก Token แล้ว!',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
+    } else if (r.isDismissed && r.dismiss === 'cancel' && window.GitHubDB?.hasToken()) {
+      window.GitHubDB?.clearToken();
+      SwalDark.fire({icon:'info',title:'ลบ Token แล้ว',toast:true,position:'top-end',showConfirmButton:false,timer:2000});
+    }
+  });
+}
+
 // ── Ghost ──
 function showGhost(x, y) {
   if (!ghostEl) { ghostEl = document.createElement('div'); ghostEl.className='node-ghost'; canvas.appendChild(ghostEl); }
@@ -724,6 +753,7 @@ function bindEvents() {
   });
 
   document.getElementById('btn-new').addEventListener('click', newTree);
+  document.getElementById('btn-token').addEventListener('click', showTokenDialog);
   document.getElementById('btn-save').addEventListener('click', doSave);
   document.getElementById('btn-export').addEventListener('click', exportJSON);
   document.getElementById('btn-import').addEventListener('click', importJSON);

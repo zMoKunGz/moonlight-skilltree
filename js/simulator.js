@@ -20,16 +20,7 @@ const loadScreen = document.getElementById('load-screen');
 const simLayout  = document.getElementById('sim-layout');
 
 // ── Init ──
-async function init() {
-  // รอ Firebase โหลดเสร็จก่อน (timeout 5s แล้ว fallback)
-  try {
-    await Promise.race([
-      window._firebaseReady,
-      new Promise((_,rej) => setTimeout(() => rej('timeout'), 5000))
-    ]);
-  } catch(e) {
-    console.warn('Firebase timeout, using localStorage');
-  }
+function init() {
   bindTopbar();
   document.getElementById('btn-import-home').addEventListener('click', importJSON);
   showLoadScreen();
@@ -347,6 +338,13 @@ function bindCanvas() {
 // ── Topbar ──
 function bindTopbar() {
   document.getElementById('btn-load').addEventListener('click', showLoadScreen);
+  const btnTokenSim = document.getElementById('btn-token-sim');
+  if (btnTokenSim) btnTokenSim.addEventListener('click', () => {
+    const cur = window.GitHubDB?.hasToken();
+    const token = prompt(cur ? 'Token ตั้งค่าแล้ว\nใส่ใหม่เพื่อเปลี่ยน หรือพิมพ์ DELETE เพื่อลบ:' : 'ใส่ GitHub Personal Access Token:');
+    if (token === 'DELETE') { window.GitHubDB?.clearToken(); alert('ลบ Token แล้ว'); }
+    else if (token) { window.GitHubDB?.setToken(token); showLoadScreen(); }
+  });
   document.getElementById('btn-import').addEventListener('click', importJSON);
   document.getElementById('btn-reset-view').addEventListener('click', resetView);
   document.getElementById('btn-reset-pts').addEventListener('click', () => {

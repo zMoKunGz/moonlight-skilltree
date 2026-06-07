@@ -19,6 +19,7 @@
   <div class="sep"></div>
   <span id="save-status"></span>
   <div class="spacer"></div>
+  <button class="btn sm" id="btn-token" title="ตั้งค่า GitHub Token">🔑 Token</button>
   <button class="btn sm" id="btn-import">📂 Import</button>
   <button class="btn sm" id="btn-export">💾 Export JSON</button>
   <button class="btn sm primary" id="btn-save">✓ Save</button>
@@ -117,12 +118,9 @@
   </div>
 </div>
 
-<script>
-  window._firebaseReady = new Promise(r => window._firebaseResolve = r);
-</script>
-<script type="module" src="js/firebase.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/tree.js"></script>
+<script src="js/github.js"></script>
 <script src="js/editor.js"></script>
 </body>
 </html>
