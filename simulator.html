@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator — Skill Tree Builder</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/simulator.css">
+</head>
+<body>
+
+<div id="topbar">
+  <a href="index.html" class="logo">⬡ STB</a>
+  <div class="sep"></div>
+  <span id="sim-tree-name" class="tree-name">—</span>
+  <div class="spacer"></div>
+  <button class="btn sm" id="btn-load">📂 โหลด Tree</button>
+  <button class="btn sm" id="btn-import">📄 Import JSON</button>
+  <button class="btn sm" id="btn-reset-view">⊙ Reset view</button>
+  <button class="btn sm danger" id="btn-reset-pts">↺ รีเซ็ต Points</button>
+  <div class="sep"></div>
+  <a href="editor.html" class="btn sm">✏ Editor</a>
+</div>
+
+<div id="app">
+  <div id="load-screen">
+    <h2>⬡ เลือก Tree</h2>
+    <p>เลือก tree ที่ต้องการ simulate หรือ import JSON จากไฟล์</p>
+    <div id="tree-list" class="tree-list"></div>
+    <button class="btn primary" id="btn-import-home" style="margin-top:8px">📄 Import JSON</button>
+  </div>
+
+  <div id="sim-layout" style="display:none">
+    <div id="canvas-wrap">
+      <svg id="tree-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:5;"></svg>
+      <div id="canvas"></div>
+    </div>
+
+    <div id="right-panel">
+      <div class="panel-section">
+        <h3>Points</h3>
+        <div id="pts-display">
+          <div>
+            <div class="pts-num">
+              <span id="pts-used">0</span>
+              <span style="font-size:14px;color:var(--text3)"> / <span id="pts-total">100</span></span>
+            </div>
+            <div class="pts-label">ใช้ไปแล้ว · เหลือ <span id="pts-remaining" style="color:var(--green);font-weight:600">100</span> points</div>
+          </div>
+        </div>
+        <div class="pts-bar" style="margin-top:8px">
+          <div class="pts-bar-fill" id="pts-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3>Node ที่เลือก</h3>
+        <div id="node-info" style="color:var(--text3);font-size:12px">คลิก node เพื่อดูรายละเอียด</div>
+      </div>
+
+      <div class="panel-section" style="flex:1;overflow-y:auto;border-bottom:none">
+        <h3>Stat รวม (real-time)</h3>
+        <div id="stat-summary"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/stats.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/simulator.js"></script>
+</body>
+</html>

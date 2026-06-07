@@ -1,0 +1,252 @@
+/* editor.css */
+
+#app {
+  display: flex; flex-direction: column; height: 100vh; padding-top: 48px;
+}
+
+/* ── Layout ── */
+#editor-layout {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* ── Canvas area ── */
+#canvas-wrap {
+  flex: 1; position: relative; overflow: hidden; cursor: default;
+  background: var(--bg);
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+}
+#canvas-wrap.placing { cursor: crosshair; }
+
+#canvas {
+  position: absolute; top: 0; left: 0;
+  transform-origin: 0 0;
+}
+
+/* ── Grid origin marker ── */
+.origin-mark {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent2); border: 2px solid var(--accent);
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 2;
+}
+.origin-label {
+  position: absolute; font-size: 10px; color: var(--text3);
+  transform: translate(6px, -50%); pointer-events: none; z-index: 2;
+  font-family: var(--font-head);
+}
+
+/* ── SVG canvas ── */
+#tree-svg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  overflow: visible; pointer-events: none;
+  transform-origin: 0 0;
+  z-index: 5;
+}
+#tree-svg .edge {
+  stroke: var(--border2); stroke-width: 2;
+  stroke-dasharray: 6 4; fill: none; pointer-events: none;
+}
+#tree-svg .edge.active { stroke: var(--accent2); stroke-dasharray: none; }
+
+/* ── Node DOM elements ── */
+.node {
+  position: absolute; width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none; z-index: 15;
+}
+.node-inner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; position: relative;
+}
+.node.keystone .node-inner {
+  border-radius: 4px; transform: rotate(45deg);
+  width: 38px; height: 38px;
+}
+.node.keystone .node-icon { transform: rotate(-45deg); }
+.node.selected .node-inner {
+  border-color: var(--accent); background: rgba(123,143,255,.15);
+  box-shadow: 0 0 0 3px rgba(123,143,255,.25);
+}
+.node.root-node .node-inner { border-color: var(--gold); background: rgba(200,168,75,.12); }
+.node-label {
+  position: absolute; top: calc(100% + 4px); left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px; color: var(--text2); white-space: nowrap;
+  font-family: var(--font-head); font-weight: 600; letter-spacing: .04em;
+  text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
+}
+.node-coord {
+  position: absolute; bottom: calc(100% + 2px); left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px; color: var(--text3); white-space: nowrap;
+  font-family: var(--font-head); pointer-events: none;
+}
+.node-icon { font-size: 16px; color: var(--text2); pointer-events: none; }
+.node.selected .node-icon { color: var(--accent); }
+.node.root-node .node-icon { color: var(--gold); }
+
+/* ghost node while placing */
+.node-ghost {
+  position: absolute; width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px dashed var(--accent);
+  background: rgba(123,143,255,.08); pointer-events: none; z-index: 5;
+  opacity: 0.7;
+}
+
+/* ── Right panel ── */
+#right-panel {
+  width: 280px; min-width: 280px; background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#right-panel .panel-section {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+#right-panel .panel-section h3 {
+  font-family: var(--font-head); font-size: 13px; font-weight: 700;
+  color: var(--text2); letter-spacing: .08em; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* ── Toolbar strip ── */
+#toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+#toolbar .tool-group {
+  display: flex; gap: 4px; align-items: center;
+  padding-right: 10px; border-right: 1px solid var(--border); margin-right: 2px;
+}
+#toolbar .tool-group:last-child { border-right: none; }
+.tool-btn {
+  width: 32px; height: 32px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: all .12s;
+}
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tool-btn.active { background: rgba(123,143,255,.18); border-color: var(--accent); color: var(--accent); }
+.tool-label { font-size: 11px; color: var(--text3); font-family: var(--font-head); letter-spacing:.04em; }
+
+/* ── Stat list in panel ── */
+.stat-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+}
+.stat-row select { flex: 1; }
+.stat-row input[type=number] { width: 70px; flex-shrink: 0; }
+.stat-remove { width: 26px; height: 26px; border-radius: var(--radius);
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text3); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all .12s; flex-shrink: 0;
+}
+.stat-remove:hover { border-color: var(--red); color: var(--red); }
+
+/* ── Parent list in panel ── */
+.parent-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px; border-radius: var(--radius);
+  background: var(--bg3); border: 1px solid var(--border);
+  margin-bottom: 4px; font-size: 12px;
+}
+.parent-item .p-name { color: var(--text); flex: 1; }
+.parent-item .p-coord { color: var(--text3); font-size: 10px; margin: 0 6px; font-family: var(--font-head); }
+.parent-item .p-remove { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 0 2px; }
+.parent-item .p-remove:hover { color: var(--red); }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 16px; text-align: center; color: var(--text3);
+  font-size: 12px; gap: 6px;
+}
+.empty-state .icon { font-size: 28px; margin-bottom: 4px; }
+
+/* ── Scrollable sections ── */
+.panel-scroll { flex: 1; overflow-y: auto; }
+
+/* ── Node type toggle ── */
+.type-toggle { display: flex; gap: 6px; }
+.type-btn {
+  flex: 1; padding: 5px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text2); cursor: pointer; font-size: 11px;
+  font-family: var(--font-head); font-weight: 600; text-align: center;
+  transition: all .12s;
+}
+.type-btn.active.normal { border-color: var(--accent); color: var(--accent); background: rgba(123,143,255,.1); }
+.type-btn.active.keystone { border-color: var(--gold); color: var(--gold); background: rgba(200,168,75,.1); }
+
+/* ── Edge lines ── */
+#tree-svg .edge {
+  stroke: #3a4060;
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+  fill: none;
+}
+#tree-svg .edge.connected {
+  stroke: #4f5fcc;
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+
+/* ── Icon grid ── */
+#icon-grid {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.icon-btn {
+  width: 30px; height: 30px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text2); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(200,168,75,.12); }
+
+/* ── Fav colors ── */
+.fav-color {
+  width: 22px; height: 22px; border-radius: 4px;
+  border: 1.5px solid var(--border2); cursor: pointer;
+  transition: transform .12s; position: relative; flex-shrink: 0;
+}
+.fav-color:hover { transform: scale(1.15); border-color: var(--text2); }
+.fav-color.active { border-color: var(--gold) !important; }
+.fav-color .del-fav {
+  display: none; position: absolute; top: -5px; right: -5px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--red); color: #fff; font-size: 8px;
+  align-items: center; justify-content: center; cursor: pointer;
+  border: none; padding: 0; line-height: 1;
+}
+.fav-color:hover .del-fav { display: flex; }
+
+/* ── Node icon on canvas ── */
+.node-icon-label {
+  font-size: 16px; line-height: 1; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Connect mode ── */
+#canvas-wrap.connecting { cursor: crosshair; }
+.node.connect-source .node-inner {
+  border-color: var(--gold) !important;
+  background: rgba(200,168,75,.2) !important;
+  box-shadow: 0 0 0 3px rgba(200,168,75,.3);
+  animation: pulse-gold .8s infinite alternate;
+}
+@keyframes pulse-gold {
+  from { box-shadow: 0 0 0 3px rgba(200,168,75,.3); }
+  to   { box-shadow: 0 0 0 6px rgba(200,168,75,.5); }
+}
+.node.connect-source .node-icon-label { color: var(--gold) !important; }
