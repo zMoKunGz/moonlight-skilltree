@@ -3,7 +3,7 @@
     "name": "momo123",
     "version": 1,
     "created": 1780832264192,
-    "modified": 1780850305755
+    "modified": 1780850404745
   },
   "nodes": [
     {
@@ -40,7 +40,8 @@
         "n1780833937700jo10"
       ],
       "stats": [],
-      "icon": "🛡"
+      "icon": "🛡",
+      "color": "#c14dff"
     },
     {
       "id": "n17808379887255jtx",
